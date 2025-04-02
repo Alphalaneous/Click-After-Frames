@@ -1,5 +1,5 @@
 {
-	"geode": "4.0.0-beta.1",
+	"geode": "4.3.1",
 	"gd": {
 		"win": "2.2074",
 		"android": "2.2074",
@@ -8,7 +8,7 @@
 	},
 	"id": "alphalaneous.click_after_frames",
 	"name": "Click After Frames",
-	"version": "v1.0.5",
+	"version": "v1.0.6",
 	"developer": "Alphalaneous",
 	"description": "Allows inputs to register after frames. Like mobile or bad mouse, but with more lag and no physics bugs.",
 	"tags": [
