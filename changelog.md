@@ -1,3 +1,6 @@
+# 1.0.7
+- iOS rebuild
+
 # 1.0.6
 - iOS support
 
