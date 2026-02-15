@@ -1,22 +1,13 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/GJBaseGameLayer.hpp>
-#include <stdlib.h> 
-#include <random>
 
 using namespace geode::prelude;
-
-int random(int min, int max) {
-    std::random_device dev;
-    std::mt19937 rng(dev());
-    std::uniform_int_distribution<std::mt19937::result_type> dist(min,max); 
-
-    return dist(rng);
-}
 
 class $modify(MyGJBaseGameLayer, GJBaseGameLayer){
 
     struct Fields {
         bool m_doOriginal = false;
+        bool m_softToggle = false;
         int m_lastRand = 0;
         bool m_isRandom = false;
         int m_randMin = 0;
@@ -26,40 +17,45 @@ class $modify(MyGJBaseGameLayer, GJBaseGameLayer){
 
     bool init(){
         if(!GJBaseGameLayer::init()) return false;
-        m_fields->m_isRandom = Mod::get()->getSettingValue<bool>("random-toggle");
-        m_fields->m_randMin = Mod::get()->getSettingValue<int64_t>("rand-min");
-        m_fields->m_randMax = Mod::get()->getSettingValue<int64_t>("rand-max");
-        m_fields->m_delay = Mod::get()->getSettingValue<int64_t>("delay");
+        auto fields = m_fields.self();
+        fields->m_isRandom = Mod::get()->getSettingValue<bool>("random-toggle");
+        fields->m_softToggle = Mod::get()->getSettingValue<bool>("soft-toggle");
+        fields->m_randMin = Mod::get()->getSettingValue<int64_t>("rand-min");
+        fields->m_randMax = Mod::get()->getSettingValue<int64_t>("rand-max");
+        fields->m_delay = Mod::get()->getSettingValue<int64_t>("delay");
         return true;
     }
 
     void handleButton(bool down, int button, bool isPlayer1){
-        if (m_fields->m_doOriginal || Mod::get()->getSettingValue<bool>("soft-toggle")) {
+        auto fields = m_fields.self();
+
+        if (fields->m_doOriginal || fields->m_softToggle) {
             GJBaseGameLayer::handleButton(down, button, isPlayer1);
         }
         else {
             int ms = 0;
-            if (m_fields->m_isRandom) {
+            if (fields->m_isRandom) {
                 if (down) {
-                    if (m_fields->m_randMin <= m_fields->m_randMax) {
-                        ms = random(m_fields->m_randMin, m_fields->m_randMax);
-                        m_fields->m_lastRand = ms;
+                    if (fields->m_randMin <= fields->m_randMax) {
+                        ms = utils::random::generate(fields->m_randMin, fields->m_randMax);
+                        fields->m_lastRand = ms;
                     }
                 }
-                else ms = m_fields->m_lastRand;
+                else ms = fields->m_lastRand;
             }
-            else ms = m_fields->m_delay;
-            std::thread waitThread = std::thread{[=]() {
-                std::this_thread::sleep_for(std::chrono::milliseconds{ms});
-                queueInMainThread([=]() {
+            else ms = fields->m_delay;
+
+            runAction(CCSequence::create(
+                CCDelayTime::create(ms / 1000.f),
+                CallFuncExt::create([this, fields, down, button, isPlayer1] {
                     if (PlayLayer::get()) {
-                        m_fields->m_doOriginal = true;
+                        fields->m_doOriginal = true;
                         GJBaseGameLayer::handleButton(down, button, isPlayer1);
-                        m_fields->m_doOriginal = false;
+                        fields->m_doOriginal = false;
                     }
-                });
-            }};
-            waitThread.detach();
+                }),
+                nullptr
+            ));
         }
     }
 };
